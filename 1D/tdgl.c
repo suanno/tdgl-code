@@ -1,5 +1,54 @@
-// Solve the TDGL equation
-// Integration using the Cranck-Nicholson scheme
+/**
+ * @file tdgl_solver.c
+ * @brief Solves the time-dependent Ginzburg-Landau (TDGL) equation using the Crank-Nicholson integration scheme.
+ *
+ * This program numerically integrates the TDGL equation in Fourier space using the Crank-Nicholson scheme,
+ * with a time-dependent control parameter C(t). It is possible to define C(t) either 
+ * - as a sinusoidal function C(t)=Cave+Ampl*sin(2\pi t/T) where Cave, Ampl, T are specified in the CMD
+ *   in this case, the time discretization must be also specified in the CMD.
+ * - by loading the values of C(t) from a file "fileCin.dat" in the work directory.
+ * 	 In this case, at each step dt is calculated as the distance between the consecutive values of the time specified in "fileCin.dat".
+ * The code tracks various physical observables over time. Results are saved for post-processing and analysis
+ *
+ * ### Usage
+ * 	The programs requires to specify a "work directory". This is the directory where it is stored:
+ * 	- the state of the system "state.dat". At the end of the run of the present code, it is overwritten.
+ *    a further run of the code will CONTINUE the simulation, loading "state.dat" as the initial state.
+ * 	- a copy of the initial state (at t=0)
+ *  - the files containing the values of the observables which are tracked in time. A file for each observable.
+ *  BEFORE the first run, you NEED to
+ *  - prepare the initial state, running a code in the /initialization/ directory
+ *  - prepare the file "fileCin.dat" defining the values of C(t), if you want to specify C(t) like this and not as an oscillation with the parameter specified in the CMD
+ *  The program requires at least two command-line arguments:
+ *  - `tspan` (double): Duration of the simulation in time units.
+ *  - `simul_path` (string): Path to the folder containing the initial state file (`state.dat`).
+ * 	those two parameters are sufficient if the values of C(t) are specified in a "fileCin.dat" file
+ *  inside the working directory. Otherwise you should specify also the following parameters:
+ *  - `Cave` (double): Average value of the control function `C(t)`.
+ *  - `Ampl` (double): Amplitude of `C(t)`.
+ *  - `T` (double): Period of `C(t)`. If `T < 0`, `C(t)` remains constant C='Cave'.
+ *  - `dt` (double): Time step for the simulation.
+ *  - `notsmoothC` (int, optional): If `1`, `C(t)` starts from zero at the beginning of the current evolution.
+ *	In the case where C(t) is red from "fileCin.dat", the time discretization dt used at each step is the distance
+ *  between the next and current time.
+ * 
+ * ### Output
+ * The simulation saves various files in the work directory, including:
+ * - **state.dat**: The final state of the system.
+ * - **fileq2Aveout.dat, fileellDW.dat, etc.**: Observables as a function of time.
+ * 
+ * ### Compilation
+ * Compile with:
+ * ```bash
+ * gcc tdgl.c observables.c read_write.c -fopenmp -lfftw3 -lm -lfftw3_omp -O2 -o ../../1D/.bin/tdgl
+ * ```
+ *
+ * ### Example Run
+ * Run a simulation with $C(t) = 1 + 0.5\sin(2\pi t/10)$ for a time 'tspan'=100 and 'dt'=0.1
+ * ```bash
+ * ../../1D/.bin/tdgl 100 "../../1D/.saves/tempo/" 1 0.5 10 0.1
+ * ```
+ */
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
