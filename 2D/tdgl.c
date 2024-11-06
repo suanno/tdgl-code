@@ -1,3 +1,44 @@
+/**
+ * @file tdgl_solver.c
+ * @brief Solves the time-dependent Ginzburg-Landau (TDGL) equation using the Crank-Nicholson integration scheme.
+ *
+ * This program numerically integrates the TDGL equation in Fourier space using the Crank-Nicholson scheme,
+ * with a time-dependent control parameter C(t).
+ * The values that C(t) assumes MUST be defined in a file "fileCin.dat" that is inside the "work directory".
+ * At each step dt is calculated as the distance between the consecutive values of the time specified in "fileCin.dat".
+ * The code tracks various physical observables over time. Results are saved for post-processing and analysis
+ *
+ * ### Usage
+ * 	The programs requires to specify a "work directory". This is the directory where it is stored:
+ *  - the file defining C(t) "fileCin.dat".
+ * 	- the state of the system "state.dat". At the end of the run of the present code, it is overwritten.
+ *    a further run of the code will CONTINUE the simulation, loading "state.dat" as the initial state.
+ * 	- a copy of the initial state (at t=0)
+ *  - the files containing the values of the observables which are tracked in time. A file for each observable.
+ *  BEFORE the first run, you NEED to
+ *  - prepare the initial state, running a code in the /initialization/ directory
+ *  - prepare the file "fileCin.dat" defining the values of C(t).
+ *  The program requires two command-line arguments:
+ *  - `tspan` (double): Duration of the simulation in time units.
+ *  - `simul_path` (string): Path to the folder containing the initial state file (`state.dat`).
+ * 
+ * ### Output
+ * The simulation saves various files in the work directory, including:
+ * - **state.dat**: The final state of the system.
+ * - **fileq2Aveout.dat, fileellDW.dat, etc.**: Observables as a function of time.
+ * 
+ * ### Compilation
+ * Compile with:
+ * ```bash
+ * gcc tdgl.c observables.c read_write.c -fopenmp -lfftw3 -lm -lfftw3_omp -O2 -o ../../1D/.bin/tdgl
+ * ```
+ *
+ * ### Example Run
+ * Run a simulation in the working directory "../../1D/.saves/tempo/" for a time 'tspan'=100
+ * ```bash
+ * ../../1D/.bin/tdgl 100 "../../1D/.saves/tempo/"
+ * ```
+ */
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
