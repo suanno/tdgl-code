@@ -19,19 +19,17 @@ int main(int argc, char  *argv [ ]){
     double** h;
 
     /* Read parameters from CMD */
-    char* fileSimul;                    //Name of the simulation folder (data is red/wrote ONLY there)
+    char* simul_path;                    //Name of the simulation folder (data is red/wrote ONLY there)
     char* ptr;
     int min_args = 1;                   // Minimum Number of required arguments
     if (argc <= min_args){
         printf("Not enought arguments");
         return 0;
     }
-    fileSimul = argv[1];
-
-    char save_dir[MAX_BUFFER_SIZE] = ".saves/"; strcat(save_dir, fileSimul); /* add the extension */
-    char state_dir[MAX_BUFFER_SIZE] = ""; strcat(state_dir, save_dir); strcat(state_dir, "/state.dat");
-
+    simul_path = argv[1];
+    char save_dir[MAX_BUFFER_SIZE] = ""; strcat(save_dir, simul_path); /* add the extension */
     /*Load initial state*/
+    char state_dir[MAX_BUFFER_SIZE] = ""; strcat(state_dir, save_dir); strcat(state_dir, "/state.dat");
     N = loadState(state_dir, &h, &dx, &tmin);
     /*State variables*/
     double** hfr = malloc(N*sizeof(double*));
