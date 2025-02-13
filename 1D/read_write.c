@@ -103,7 +103,8 @@ int writeState(char* fileStatePath, double* h, int N, double dx, double tmax){
     for (int i=0; i<N; i++){
         x = i*dx;
         z = h[i];
-        fprintf(filefinalstate, "%.20f %.20f\n", x, z);
+        fprintf(filefinalstate, "%lf %.17g\n", x, z);
+        //printf("%lf, ",z);
     }
     fclose(filefinalstate);
 

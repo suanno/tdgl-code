@@ -6,7 +6,38 @@
 #define pi 4*atan(1.0)
 #define MAX_BUFFER_SIZE 256
 
-double calckink_dist(double* x, double* u, int N, double dx){		
+int measure_dist(double*u, int N, double dx, double*x0, double*u0){
+	/*	Finds 4 around one of the two zeros (the one at x>0)
+		it returns them in two arrays of 8 elements x0 and u0.
+		In python then you can use this data to do a 3rd degree polynomial interpolation
+		
+	 */
+	double central_plateau,x_next,u_next;
+    int i = (int)(N/2);
+    central_plateau = u[i];
+	while (i < N){
+	    // Estimate the position of the zero x=xk (y0=0) with a linear fit
+		// We store the value of y(=u) until it changes sign, so we can use the previous value to do the fit
+		if ((u[i]>0 && central_plateau < 0)||(u[i]<0 && central_plateau > 0)){  //as soon as u<0 if the central plateau is >0; as soon as u>0 if the central plateau is <0 
+			x0[1] = x_next;
+			x0[2] = (i-(int)(N/2))*dx;
+			u0[1] = u_next;
+			u0[2] = u[i];
+			//Take other two points around
+			x0[0] = ((i-2)-(int)(N/2))*dx;
+			u0[0] = u[i-2];
+			x0[3] = ((i+1)-(int)(N/2))*dx;
+			u0[3] = u[i+1];
+			return 1;
+		}
+		x_next = (i-(int)(N/2))*dx;
+		u_next = u[i];
+		i = i + 1;
+	}
+	return 0;
+}
+
+double calckink_dist(double* u, int N, double dx){		
 	/* Assuming there are only 2 isolated kinks, it extimates their distance by extimating the position
 	   of the zeros of u(x) with a linear fit.
 	*/
@@ -18,7 +49,7 @@ double calckink_dist(double* x, double* u, int N, double dx){
 	while (i < N){
 	    // Estimate the position of the zero x=xk (y0=0) with a linear fit
 		// We store the value of y(=u) until it changes sign, so we can use the previous value to do the fit
-		if (u[i]*central_plateau < 0){  //as soon as u<0 if the central plateau is >0; as soon as u>0 if the central plateau is <0 
+		if ((u[i]>0 && central_plateau < 0)||(u[i]<0 && central_plateau > 0)){  //as soon as u<0 if the central plateau is >0; as soon as u>0 if the central plateau is <0 
 			x1 = x2;
 			x2 = (i-(int)(N/2))*dx;
 			u1 = u2;
@@ -100,6 +131,19 @@ double calcaverage_sigma2(double* x, double* u, double* ux, int N, double dx){
     return sum_sigma2/num_kinks;
 }
 
+double calcnum_kiks(double* u, int N){
+	// Measures the number of zeros of u(x)
+	int num = 0;
+	double u0 = u[0];
+	for(int i = 0; i < N; i++){
+		if(u[i]*u0 < 0)	//If u(x) changes sign
+			num = num + 1;
+		u0 = u[i];
+	}
+
+	return num;
+}
+
 int save_observable(FILE* dest_file, char* save_dir, char* obs_name, double* obsx, double* obsy, int len, int append){
     double x, y;
     char obs_dir[MAX_BUFFER_SIZE] = "";
@@ -113,7 +157,30 @@ int save_observable(FILE* dest_file, char* save_dir, char* obs_name, double* obs
     for (int i=0; i<len; i++){
         x = obsx[i];
         y = obsy[i];
-        fprintf(dest_file, "%.5f %.20f\n", x, y);
+        fprintf(dest_file, "%lf %.17g\n", x, y);
+    }
+    fclose(dest_file);
+    return 1;
+}
+
+int save_arraylike_observable(FILE* dest_file, char* save_dir, char* obs_name, double* obsx, double** arraylike_obsy, int lenx, int leny, int append){
+    double x;
+	double* y;
+    char obs_dir[MAX_BUFFER_SIZE] = "";
+    strcat(obs_dir, save_dir);
+    strcat(obs_dir, "/");
+    strcat(obs_dir, obs_name);
+	if (append == 1)
+    	dest_file = fopen(obs_dir, "a");
+	else
+    	dest_file = fopen(obs_dir, "w");
+    for (int i=0; i<lenx; i++){
+        x = obsx[i];
+        y = arraylike_obsy[i];
+		fprintf(dest_file, "%.5f", x);
+		for(int j=0; j < leny; j++)
+        	fprintf(dest_file, " %.17g", y[j]);
+		fprintf(dest_file, "\n");
     }
     fclose(dest_file);
     return 1;

@@ -90,6 +90,101 @@ double calcCauchyCrofton(double** u, int N, double dx){
     return average_lenght/4;
 }
 
+double calcRadiusCircularIsland(double** h, int N, double dx){
+    // Estimate the radius of a circular island (centered at the origin) by estimating the distance between the zeros
+    // of u(x.y) along an horizontal line passing through the origin
+    double central_plateau,x1,x2,u1,u2,xk;
+    double radius = 0;
+    int middle_index = (int)(N/2);
+    int i = middle_index;
+    int found_zero = 0;
+	xk = 0; // (right) kink position
+    central_plateau = h[i][i];
+
+    //Horizontal line
+	while (i < N && found_zero == 0){
+	    // Estimate the position of the zero x=xk (y0=0) with a linear fit
+		// We store the value of y(=u) until it changes sign, so we can use the previous value to do the fit
+		if (h[i][middle_index]*central_plateau < 0){  //as soon as u<0 if the central plateau is >0; as soon as u>0 if the central plateau is <0 
+			x1 = x2;
+			x2 = (i-(int)(N/2))*dx;
+			u1 = u2;
+			u2 = h[i][middle_index];
+			xk = x1 + (u1/(u1-u2))*dx;
+			//printf("%lf\n", u1*u2);
+			radius = radius + xk;
+            found_zero = 1;
+		}
+		x2 = (i-(int)(N/2))*dx;
+		u2 = h[i][middle_index];
+		i = i + 1;
+	}
+    //Vertical line
+    found_zero = 0;
+    i = middle_index;
+	while (i < N && found_zero == 0){
+	    // Estimate the position of the zero x=xk (y0=0) with a linear fit
+		// We store the value of y(=u) until it changes sign, so we can use the previous value to do the fit
+		if (h[middle_index][i]*central_plateau < 0){  //as soon as u<0 if the central plateau is >0; as soon as u>0 if the central plateau is <0 
+			x1 = x2;
+			x2 = (i-(int)(N/2))*dx;
+			u1 = u2;
+			u2 = h[middle_index][i];
+			xk = x1 + (u1/(u1-u2))*dx;
+			//printf("%lf\n", u1*u2);
+			radius = radius + xk;
+            found_zero = 1;
+		}
+		x2 = (i-(int)(N/2))*dx;
+		u2 = h[middle_index][i];
+		i = i + 1;
+	}
+    return radius/2;   
+}
+
+int measureRadiusCircularIsland(double**u, int N, double dx, double*x0, double*u0){
+	/*	Considers ONLY the section of u(x,y) with y=0
+        Finds 4 around one of the two zeros (the one at x>0)
+		it returns them in two arrays of 8 elements x0 and u0.
+		In python then you can use this data to do a 3rd degree polynomial interpolation
+		
+	 */
+	double central_plateau,x_next,u_next;
+    int j = (int)(N/2);
+    int i = (int)(N/2);
+    central_plateau = u[j][i];
+	while (i < N){
+	    // Estimate the position of the zero x=xk (y0=0) with a linear fit
+		// We store the value of y(=u) until it changes sign, so we can use the previous value to do the fit
+		if (u[j][i]*central_plateau < 0){  //as soon as u<0 if the central plateau is >0; as soon as u>0 if the central plateau is <0 
+			x0[1] = x_next;
+			x0[2] = (i-(int)(N/2))*dx;
+			u0[1] = u_next;
+			u0[2] = u[j][i];
+			//Take other two points around
+			x0[0] = ((i-2)-(int)(N/2))*dx;
+			u0[0] = u[j][i-2];
+			x0[3] = ((i+1)-(int)(N/2))*dx;
+			u0[3] = u[j][i+1];
+			return 1;
+		}
+		x_next = (i-(int)(N/2))*dx;
+		u_next = u[j][i];
+		i = i + 1;
+	}
+	return 0;
+}
+
+double calcellDW(double** hfr, double** hfi, double** q2, int N, double dx){
+    double grad2_integral = 0;
+    for(int i=0;i<N;i++) {
+        for(int j=0;j<N;j++) {
+            grad2_integral = grad2_integral + q2[i][j]*(hfr[i][j]*hfr[i][j] + hfi[i][j]*hfi[i][j])*(2*pi/(N*dx))*(2*pi/(N*dx));
+        }
+	}
+	return ((N*dx)*(N*dx))/grad2_integral;
+}
+
 double calcDW(double** ghx, double** ghy, double dx, int N){
         /*Compute the L^2/integral of |Grad u|^2. This value, times the thickness of the interface, gives the characteristic lenght \ell_DW*/
         //Remember that FFTW, when performing both DFT and IDFT, does not normalize the data by any factor (nor sqrt(N) nor N in just one of the two)
@@ -138,6 +233,29 @@ int save_observable(FILE* dest_file, char* save_dir, char* obs_name, double* obs
         x = obsx[i];
         y = obsy[i];
         fprintf(dest_file, "%.5f %.20f\n", x, y);
+    }
+    fclose(dest_file);
+    return 1;
+}
+
+int save_arraylike_observable(FILE* dest_file, char* save_dir, char* obs_name, double* obsx, double** arraylike_obsy, int lenx, int leny, int append){
+    double x;
+	double* y;
+    char obs_dir[MAX_BUFFER_SIZE] = "";
+    strcat(obs_dir, save_dir);
+    strcat(obs_dir, "/");
+    strcat(obs_dir, obs_name);
+	if (append == 1)
+    	dest_file = fopen(obs_dir, "a");
+	else
+    	dest_file = fopen(obs_dir, "w");
+    for (int i=0; i<lenx; i++){
+        x = obsx[i];
+        y = arraylike_obsy[i];
+		fprintf(dest_file, "%.20f", x);
+		for(int j=0; j < leny; j++)
+        	fprintf(dest_file, " %.20f", y[j]);
+		fprintf(dest_file, "\n");
     }
     fclose(dest_file);
     return 1;

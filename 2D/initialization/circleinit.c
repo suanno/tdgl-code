@@ -17,7 +17,7 @@ int i,j;
 
 double L, dx;
 int N;
-double u0;              /*Plateau value is +-u0*/
+double C0;               /*Plateau value is +-sqrt(C0) and also the width*/
 double r0;              /*Radius of the circular front*/
 char* simul_path;           /*Name of the folder of savings*/
 
@@ -25,13 +25,13 @@ char* simul_path;           /*Name of the folder of savings*/
 /* Read CMD parameters */
 char *ptr;
 int n_args = 4;         /*Number of required arguments*/
-                        /*L, u0, simulation name*/
+                        /*L, C0, simulation name*/
 if (argc <= n_args){
     printf("Not enought input arguments");
     return 0;
 }
 N = atoi(argv[1]);
-u0 = strtod(argv[2], &ptr);
+C0 = strtod(argv[2], &ptr);
 r0 = strtod(argv[3], &ptr);
 simul_path = argv[4];
 
@@ -72,7 +72,7 @@ for (i=0; i<N; i++){
         y = j*dx;
         /*Formula for a circular front*/
         r = sqrt((x-L/2)*(x-L/2)+(y-L/2)*(y-L/2));
-        z = -u0*tanh((r-r0)/sqrt(2));
+        z = -sqrt(C0)*tanh((r-r0)*sqrt(C0/2));
         fprintf(filestate, "%.5f %.5f %.20f\n", x, y, z);
         fprintf(fileinit, "%.5f %.5f %.20f\n", x, y, z);
     }

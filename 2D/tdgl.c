@@ -30,13 +30,13 @@
  * ### Compilation
  * Compile with:
  * ```bash
- * gcc tdgl.c observables.c read_write.c -fopenmp -lfftw3 -lm -lfftw3_omp -O2 -o ../../1D/.bin/tdgl
+ * gcc tdgl.c observables.c read_write.c -fopenmp -lfftw3 -lm -lfftw3_omp -O2 -o ../../2D/.bin/tdgl
  * ```
  *
  * ### Example Run
- * Run a simulation in the working directory "../../1D/.saves/tempo/" for a time 'tspan'=100
+ * Run a simulation in the working directory "../../2D/.saves/tempo/" for a time 'tspan'=100
  * ```bash
- * ../../1D/.bin/tdgl 100 "../../1D/.saves/tempo/"
+ * ../../2D/.bin/tdgl 100 "../../2D/.saves/tempo/"
  * ```
  */
 #include <string.h>
@@ -188,15 +188,25 @@ int num_saves = 1000; /*Save the observable only at num_saves equispaced instant
 if (nloop < num_saves)
     num_saves = nloop;
 int index_saves = 0;
+num_saves = nloop;
 
 double* Times = malloc(num_saves*sizeof(double)); /*Times of saves*/
-double* Cout = malloc(num_saves*sizeof(double)); /*Times of saves*/
-//double* Ave = malloc(num_saves*sizeof(double)); /*Average magnetization*/
-double* q2Ave = malloc(num_saves*sizeof(double)); /*Average magnetization*/
-double* totlenght = malloc(num_saves*sizeof(double)); /*Average magnetization*/
+double* Cout = malloc(num_saves*sizeof(double)); 
+//double* Ave = malloc(num_saves*sizeof(double));
+double* q2Ave = malloc(num_saves*sizeof(double)); 
+double* totlenght = malloc(num_saves*sizeof(double));
 double* ellDW = malloc(num_saves*sizeof(double));
 double* structure_fac = malloc(N*sizeof(double));
-//double* integ_grad2 = malloc(num_saves*sizeof(double)); /*Average magnetization*/
+double* integ_grad2 = malloc(num_saves*sizeof(double)); 
+double* radius_island = malloc(num_saves*sizeof(double));
+//Points for the interpolation to estimate the radius of a circular island
+double** x0 = malloc(num_saves*sizeof(double));
+double** u0 = malloc(num_saves*sizeof(double));
+double deg_interpolation = 3;
+for(i = 0; i < num_saves; i++)
+		x0[i] = malloc((deg_interpolation+1) * sizeof(double));
+for(i = 0; i < num_saves; i++)
+		u0[i] = malloc((deg_interpolation+1) * sizeof(double));
 //double* R2 = malloc(num_saves*sizeof(double)); /*Average of R2 weighted on grad2*/
 //double weight_sum = 0;  /*Sum of the weights*/
 
@@ -301,12 +311,16 @@ for(loop=0;loop<nloop;loop++) {
         }
     }
 
+    //printf("%lf \n", time);
     /* Measure Observables (instantaneous value) */
     if (loop >= ((double)nloop/num_saves)*index_saves){
         Times[index_saves] = time;
         Cout[index_saves] = C[loop];
         q2Ave[index_saves] = calcq2ave(hfr, hfi, q2, N);
         totlenght[index_saves] = calcCauchyCrofton(h, N, dx);
+        //radius_island[index_saves] = calcRadiusCircularIsland(h, N, dx);
+		//measureRadiusCircularIsland(h,N,dx,x0[index_saves],u0[index_saves]);
+        //ellDW[index_saves] = calcellDW(hfr, hfi, q2, N, dx);
         
 
         //printf("%d / %d\n",loop, nloop);
@@ -327,10 +341,13 @@ writeState(state_dir,h,N,dx,tmax);
 FILE* observables_file;
 save_observable(observables_file, save_dir, "fileQ2.dat", Times, q2Ave, num_saves, 1);
 save_observable(observables_file, save_dir, "fileTotlenght.dat", Times, totlenght, num_saves, 1);
-save_observable(observables_file, save_dir, "fileDW.dat", Times, ellDW, num_saves, 1);
+//save_observable(observables_file, save_dir, "fileRadius.dat", Times, radius_island, num_saves, 1);
+//save_arraylike_observable(observables_file, save_dir, "filezeroX.dat", Times, x0, num_saves, (deg_interpolation+1), 1);
+//save_arraylike_observable(observables_file, save_dir, "filezeroY.dat", Times, u0, num_saves, (deg_interpolation+1), 1);
+//save_observable(observables_file, save_dir, "fileDW.dat", Times, ellDW, num_saves, 1);
 save_observable(observables_file, save_dir, "fileCout.dat", Times, Cout, num_saves, 1);
-calcstructure_fact(hfr, hfi, N, structure_fac);
-save_observable(observables_file, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
+//calcstructure_fact(hfr, hfi, N, structure_fac);
+//save_observable(observables_file, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
 
 fftw_destroy_plan(pf);
 fftw_destroy_plan(pb);
