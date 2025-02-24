@@ -136,7 +136,7 @@ double calcnum_kiks(double* u, int N){
 	int num = 0;
 	double u0 = u[0];
 	for(int i = 0; i < N; i++){
-		if(u[i]*u0 < 0)	//If u(x) changes sign
+		if((u[i]<0 && u0>0)||(u[i]>0 && u0<0))	//If u(x) changes sign
 			num = num + 1;
 		u0 = u[i];
 	}

@@ -294,13 +294,12 @@ for (int loop = 0; loop < nloop; loop++){
 		kink_dist[index_saves] = calckink_dist(u, N, dx);
 		measure_dist(u,N,dx,x0[index_saves],u0[index_saves]);
 		num_kinks[index_saves] = calcnum_kiks(u, N);
-		/*IF num kinks = 0, stop simulation!
+		/*IF num kinks = 0, stop simulation!*/
 		if (num_kinks[index_saves] == 0){
 			//Fill arrays with zeros
 			num_saves = index_saves+1;
 			loop = nloop;	// Stop simulation
 		}
-		*/
 		//sigma2ave[index_saves] = calcaverage_sigma2(x, u, ux, N, dx);
 		//uave[index_saves] = calcaverage(ufr, N, dx);
 		index_saves = index_saves + 1;
