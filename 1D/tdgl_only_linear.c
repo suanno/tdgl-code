@@ -85,7 +85,6 @@ simul_path = argv[2];							// Path containing the simulation's folder
 char save_dir[MAX_BUFFER_SIZE] = ""; strcat(save_dir, simul_path);
 char state_dir[MAX_BUFFER_SIZE] = ""; strcat(state_dir, save_dir); strcat(state_dir, "/state.dat");
 N = loadState(state_dir, &u, &dx, &tmin);
-printf("dx=%lf\n", dx);
 /* Define C(t) */
 double* C;   //C[i]=C(t_i+dt)
 double* t_C; //Time of the C(t) values
@@ -140,18 +139,12 @@ num_saves = nloop;
 int index_saves = 0;
 double* Times = malloc(num_saves*sizeof(double)); /*Times of saves*/
 double* q2Ave = malloc(num_saves*sizeof(double));
-//double* intu = malloc(num_saves*sizeof(double));
-//double* intu2 = malloc(num_saves*sizeof(double));
-double* m2 = malloc(num_saves*sizeof(double));
-double* m4 = malloc(num_saves*sizeof(double));
-//double* ellDW = malloc(num_saves*sizeof(double));
-//double* min_len = malloc(num_saves*sizeof(double));
-//double* structure_fac = malloc(N*sizeof(double));
-//double* uave = malloc(num_saves*sizeof(double));
-//double* u0_twokinks = malloc(num_saves*sizeof(double));
-//double* u0D = malloc(num_saves*sizeof(double));
-//double* kink_dist = malloc(num_saves*sizeof(double));
-/*
+double* intu2 = malloc(num_saves*sizeof(double));
+double* ellDW = malloc(num_saves*sizeof(double));
+double* structure_fac = malloc(N*sizeof(double));
+double* uave = malloc(num_saves*sizeof(double));
+double* u0_twokinks = malloc(num_saves*sizeof(double));
+double* kink_dist = malloc(num_saves*sizeof(double));
 double** x0 = malloc(num_saves*sizeof(double));
 double** u0 = malloc(num_saves*sizeof(double));
 double deg_interpolation = 3;
@@ -159,7 +152,6 @@ for(i = 0; i < num_saves; i++)
 		x0[i] = malloc((deg_interpolation+1) * sizeof(double));
 for(i = 0; i < num_saves; i++)
 		u0[i] = malloc((deg_interpolation+1) * sizeof(double));
-*/
 double* num_kinks = malloc(num_saves*sizeof(double));
 //double* sigma2ave = malloc(num_saves*sizeof(double));
 double weight_sum = 0;
@@ -200,7 +192,7 @@ ffr[N-i]=-i;
 ffr[0]=0;
 ffr[N/2]=N/2;	/*N MUST BE EVEN!!!*/
 for (int i=0; i<N; i++){
-qfr[i]=ffr[i]*2*pi/(dx*(double)N);
+qfr[i]=ffr[i]*2*pi/(dx*N);
 }
 
 
@@ -240,23 +232,6 @@ for (int loop = 0; loop < nloop; loop++){
 		ufi[i]=out[i][1];
 	}
 
-	/*Compute FFT of u(x)^3 (u^3 is called NL: Non Linear term)*/
-    #pragma omp parallel for //seulement pour les grands systèmes
-	for (i=0; i<N; i++){
-	NL[i]=u[i]*u[i]*u[i];
-	}
-    #pragma omp parallel for //seulement pour les grands systèmes
-	for(i=0; i<N; i++) {
-	in[i][0]=NL[i];
-	in[i][1]=0.0;
-	}
-	fftw_execute(pf); // repeat as needed
-    #pragma omp parallel for //seulement pour les grands systèmes
-	for(i=0; i<N; i++) {
-	NLfr[i]=out[i][0];
-	NLfi[i]=out[i][1];
-	}
-
 	/*C[loop] = C(t+dt) but we need even C(t)=Cprev*/
 	if (loop > 0)
 		Cprev = C[loop-1];
@@ -264,8 +239,8 @@ for (int loop = 0; loop < nloop; loop++){
 	/*Crank-Nicolson*/
     #pragma omp parallel for //seulement pour les grands systèmes
 	for (i=0; i<N; i++){
-		ufr[i]=(ufr[i]*(1+dt*Cprev/2+dt*d2coef[i]/2)-dt*NLfr[i])/integ_coef[i];
-		ufi[i]=(ufi[i]*(1+dt*Cprev/2+dt*d2coef[i]/2)-dt*NLfi[i])/integ_coef[i];	
+		ufr[i]=(ufr[i]*(1+dt*Cprev/2+dt*d2coef[i]/2))/integ_coef[i];
+		ufi[i]=(ufi[i]*(1+dt*Cprev/2+dt*d2coef[i]/2))/integ_coef[i];	
 	}
 
 	/*INVERSE FFT*/
@@ -298,20 +273,13 @@ for (int loop = 0; loop < nloop; loop++){
 	
 	/*Measure observables*/
 	if (loop >= ((double)nloop/num_saves)*index_saves){
-		//printf("%lf\n",ttime);
 		Times[index_saves] = ttime;	
 		q2Ave[index_saves] = calcq2ave(ufr, ufi, d2coef, N, dx);
-		//intu2[index_saves] = calcIntu2(u, N, dx);
-		//m2[index_saves] = calcm2(u, N);
-		//m4[index_saves] = calcm4(u, N);
+		intu2[index_saves] = calcIntu2(u, N, dx);
 		//ellDW[index_saves] = calcelllDW(ufr, ufi, d2coef, N, dx);
 		//kink_dist[index_saves] = calckink_dist(u, N, dx);
-		//intu2[index_saves] = calcIntu2(u, N);
-		//u0D[index_saves] = u[0];
 		//measure_dist(u,N,dx,x0[index_saves],u0[index_saves]);
 		num_kinks[index_saves] = calcnum_kiks(u, N);
-		//min_len[index_saves] = calcmin_len(u, N, dx);
-		
 		/*IF num kinks = 0, stop simulation!*/
 		if (num_kinks[index_saves] == 0){
 			num_saves = index_saves+1;
@@ -329,33 +297,25 @@ printf("t = %lf\n", ttime);
 writeState(state_dir, u, N, dx, tmax);
 
 /*Save the structure factor of the final state*/
-//calcstructure_fact(ufr, ufi, N, structure_fac);
+calcstructure_fact(ufr, ufi, N, structure_fac);
 /*Save the values taken by C(t) in time.
   They are appendend, so you save its values from t=0
 */
-// Calculate the position of all the kinks in the last state
-//double* pos_kinks = malloc(num_kinks[index_saves-1]*sizeof(double));
-//calcpos_kiks(u, N, dx, pos_kinks);
-
 FILE* varfile;
+
 /*Save the measured observables as a function of time*/
 save_observable(varfile, save_dir, "fileCout.dat", t_C, C, num_saves, 1);
 save_observable(varfile, save_dir, "fileq2Aveout.dat", Times, q2Ave, num_saves, 1);
 //save_observable(varfile, save_dir, "fileellDW.dat", Times, ellDW, num_saves, 1);
-//save_observable(varfile, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
-//save_observable(varfile, save_dir, "fileIntu2.dat", Times, intu2, num_saves, 1);
-//save_observable(varfile, save_dir, "filem2.dat", Times, m2, num_saves, 1);
-//save_observable(varfile, save_dir, "filem4.dat", Times, m4, num_saves, 1);
-//save_observable(varfile, save_dir, "fileIntu.dat", Times, intu, num_saves, 1);
-//save_observable_single_row(varfile, save_dir, "file_kink_pos.dat", Times[index_saves-1], pos_kinks, num_kinks[index_saves-1], 1);
+save_observable(varfile, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
+save_observable(varfile, save_dir, "fileIntu2.dat", Times, intu2, num_saves, 1);
 //save_observable(varfile, save_dir, "filekinkdist.dat", Times, kink_dist, num_saves, 1);
 //save_arraylike_observable(varfile, save_dir, "filezeroX.dat", Times, x0, num_saves, (deg_interpolation+1), 1);
 //save_arraylike_observable(varfile, save_dir, "filezeroY.dat", Times, u0, num_saves, (deg_interpolation+1), 1);
 save_observable(varfile, save_dir, "filenumkinks.dat", Times, num_kinks, num_saves, 1);
-//save_observable(varfile, save_dir, "fileminlen.dat", Times, min_len, num_saves, 1);
 //save_observable(varfile, "filesigma2ave.dat", Times, sigma2ave, num_saves, 1);
 //save_observable(varfile, save_dir, "fileuave.dat", Times, uave, num_saves, 1);
-//save_observable(varfile, save_dir, "fileu0.dat", Times, u0D, num_saves, 1);
+//save_observable(varfile, save_dir, "fileu0.dat", Times, u0_twokinks, num_saves, 1);
 
 /*Clear memory*/
 fftw_destroy_plan(pf);
@@ -367,7 +327,7 @@ free(x);
 free(u);
 free(ufr);
 free(ufi);
-//free(structure_fac);
+free(structure_fac);
 //free(ux);
 //free(uxfr);
 //free(uxfi);
@@ -382,12 +342,10 @@ free(integ_coef);
 
 free(Times);
 free(q2Ave);
-free(m2);
-free(m4);
-free(num_kinks);
-//free(kink_dist);
+free(ellDW);
+free(kink_dist);
 //free(sigma2ave);
-//free(uave);
+free(uave);
 
 return 0;
 }

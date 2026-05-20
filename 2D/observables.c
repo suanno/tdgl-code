@@ -22,6 +22,52 @@ double calcq2ave(double** hfr, double** hfi, double** q2, int N){
     return q2ave;
 }
 
+int calcTotalArea(double** h, int N, double dx){
+    /*Calculate the total area of the u>0 phase by returning the number of pixels with positive u*/
+    int num = 0;
+    for (int i = 0; i < N; i++){
+        for (int j = 1; j < N; j++){
+            if (h[j][i] > 0){
+                num=num+1;
+            }
+        }
+    }
+    return num;
+}
+
+
+double calcPhi(double** h, int N, double dx){
+    /*Calculate Phi=sqrt of integral phi^2/L^D*/
+    double Phi = 0;
+    for (int i = 0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            Phi = Phi + h[i][j]*h[i][j];
+        }
+    }
+    return sqrt(Phi/(N*N));
+}
+double calcPhi1(double** h, int N, double dx){
+    /*Calculate Phi1=integral phi/L^D*/
+    double Phi1 = 0;
+    for (int i = 0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            Phi1 = Phi1 + h[i][j];
+        }
+    }
+    return Phi1/(N*N);
+}
+double calcPhi2(double** h, int N, double dx){
+    /*Calculate Phi2=sqrt of integral (phi-phi_-)/L^D*/
+    double Phi2 = 0;
+    double phi_ = h[N-1][N-1];
+    for (int i = 0; i < N; i++){
+        for (int j = 0; j < N; j++){
+            Phi2 = Phi2 + h[i][j];
+        }
+    }
+    return Phi2/(N*N)-phi_;
+}
+
 double calcCauchyCrofton(double** u, int N, double dx){
     /*Extimate the (total) interface(s) lenght by using the Cauchy-Croft formula */
     /*N.B.: In the book of "do Carmo, Manfredo" (P.48) there is a pi/4 instead of pi
@@ -140,6 +186,69 @@ double calcRadiusCircularIsland(double** h, int N, double dx){
 		i = i + 1;
 	}
     return radius/2;   
+}
+
+typedef struct {
+    int x;
+    int y;
+} Direction2D;
+
+int calcRadiusCircularIsland_pi4(double** h, int N, double dx, double*list_R, double*list_tantheta){
+    // Estimate the radius of a circular island (centered at the origin) by estimating the distance between the zeros
+    // of u(x.y) along some line passing through the origin with an angle between zero and pi/4
+    double central_plateau,x1,x2,y1,y2,u1,u2,radius,dr,dl;
+    int middle_index = (int)(N/2);
+    int j,k;
+    int found_zero = 0;
+    central_plateau = h[middle_index][middle_index];
+
+    //Cycle over the directions
+    Direction2D dirs[] = {
+        {1,0},
+        {6,1},
+        {5, 1},
+        {3, 1},
+        {2, 1},
+        {3, 2},
+        {5,4},
+        {7,4},
+        {1,1}
+        // Add as many as you like
+    };
+    int num_pairs = sizeof(dirs) / sizeof(dirs[0]);
+    for (int i = 0; i < num_pairs; i++) {
+        // Find the radius with a linear interpolation
+        found_zero = 0;
+        j = middle_index;
+        k = middle_index;
+        x1=0;
+        x2=0;
+        while (j < N && k < N && found_zero == 0){
+            // Estimate the position of the zero x=xk (y0=0) with a linear fit
+            // We store the value of y(=u) until it changes sign, so we can use the previous value to do the Interpolation (linear passing through two points)
+            if (h[j][k]*central_plateau < 0){  //as soon as u<0 if the central plateau is >0; as soon as u>0 if the central plateau is <0 
+                x1 = x2;
+                y1 = y2;
+                u1 = u2;
+                x2 = (j-(int)(N/2))*dx;
+                y2 = (k-(int)(N/2))*dx;
+                u2 = h[j][k];
+                dl = sqrt(dirs[i].x*dirs[i].x+dirs[i].y*dirs[i].y)*dx;
+                dr = u1/(u1-u2)*dl;
+                radius = sqrt(x1*x1+y1*y1) + dr;
+                found_zero = 1;
+            }
+            x2 = (j-middle_index)*dx;
+            y2 = (k-middle_index)*dx;
+            u2 = h[j][k];
+            j = j + dirs[i].x;
+            k = k + dirs[i].y;
+        }
+        list_R[i] = radius;
+        list_tantheta[i] = y1/(x1+dx);  // To avoid division by zero
+        //printf("%d\n",i);
+    }	
+    return 1;
 }
 
 int measureRadiusCircularIsland(double**u, int N, double dx, double*x0, double*u0){

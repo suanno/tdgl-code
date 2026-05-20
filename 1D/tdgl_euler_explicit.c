@@ -76,7 +76,7 @@ char* simul_path;
 char* ptr;
 int min_args = 2;                   // Minimum Number of required arguments
 if (argc <= min_args){
-    printf("Not enought arguments");
+    printf("Not enought arguments %d", argc);
     return 0;
 }
 tspan = (double)strtod(argv[1], &ptr);			// Duration of the simulation
@@ -135,13 +135,24 @@ else{
 int num_saves = 1000; /*Save the observable only at num_saves equispaced instants*/
 if (nloop < num_saves)
     num_saves = nloop;
+num_saves = nloop;
 int index_saves = 0;
 double* Times = malloc(num_saves*sizeof(double)); /*Times of saves*/
 double* q2Ave = malloc(num_saves*sizeof(double));
+double* intu2 = malloc(num_saves*sizeof(double));
 double* ellDW = malloc(num_saves*sizeof(double));
 double* structure_fac = malloc(N*sizeof(double));
 double* uave = malloc(num_saves*sizeof(double));
+double* u0_twokinks = malloc(num_saves*sizeof(double));
 double* kink_dist = malloc(num_saves*sizeof(double));
+double** x0 = malloc(num_saves*sizeof(double));
+double** u0 = malloc(num_saves*sizeof(double));
+double deg_interpolation = 3;
+for(i = 0; i < num_saves; i++)
+		x0[i] = malloc((deg_interpolation+1) * sizeof(double));
+for(i = 0; i < num_saves; i++)
+		u0[i] = malloc((deg_interpolation+1) * sizeof(double));
+double* num_kinks = malloc(num_saves*sizeof(double));
 //double* sigma2ave = malloc(num_saves*sizeof(double));
 double weight_sum = 0;
 int found_kink = 0;
@@ -191,20 +202,6 @@ d2coef[i]=-qfr[i]*qfr[i];	//-q^2
 }
 
 
-
-
-	/*Compute FFT of u(x)->U(q)*/
-	for(i=0; i<N; i++) {
-		in[i][0]=u[i];
-		in[i][1]=0.0;
-	}
-	fftw_execute(pf); // repeat as needed
-	for(i=0; i<N; i++) {
-		ufr[i]=out[i][0];
-		ufi[i]=out[i][1];
-	}
-
-
 /* EVOLUTION CODE */
 tmax = tmin + tspan;
 double ttime = tmin;
@@ -214,27 +211,17 @@ for (int loop = 0; loop < nloop; loop++){
     dt = t_C[loop]-ttime;
 	ttime = t_C[loop]; //so the first time we calculate (and save in the .dat) u(tmin + dt), NOT u(t)
 
-	/*Denominator of Crank-Nicolson*/
-	#pragma omp parallel for //seulement pour les grands systèmes
-	for (i = 0; i<N; i++){
-	integ_coef[i]=1-dt*C[loop]/2-dt*d2coef[i]/2; 	//Note that d2coeff = -q^2 (already contains a minus sign)
-											 		//And that C[loop] is C(t+dt), NOT C(t)
-													//And the 1/2 is for Crank-Nicolson
-	}
-
 	/*Compute FFT of u(x)->U(q)*/
+	#pragma omp parallel for //seulement pour les grands systèmes
 	for(i=0; i<N; i++) {
 		in[i][0]=u[i];
 		in[i][1]=0.0;
 	}
 	fftw_execute(pf); // repeat as needed
+	#pragma omp parallel for //seulement pour les grands systèmes
 	for(i=0; i<N; i++) {
-		if (abs(ufi[i]-out[i][1])>1e-9){
-			printf("Deviation at t=%lf\n", ttime);
-			//printf("%lf, %d, %lf; ", ttime, i, ufr[i]-out[i][0]);
-			ufr[i]=out[i][0];
-			ufi[i]=out[i][1];
-		}
+		ufr[i]=out[i][0];
+		ufi[i]=out[i][1];
 	}
 
 	/*Compute FFT of u(x)^3 (u^3 is called NL: Non Linear term)*/
@@ -258,11 +245,11 @@ for (int loop = 0; loop < nloop; loop++){
 	if (loop > 0)
 		Cprev = C[loop-1];
 	
-	/*Crank-Nicolson*/
+	/*Explicit Euler*/
     #pragma omp parallel for //seulement pour les grands systèmes
 	for (i=0; i<N; i++){
-		ufr[i]=(ufr[i]*(1+dt*Cprev/2+dt*d2coef[i]/2)-dt*NLfr[i])/integ_coef[i];
-		ufi[i]=(ufi[i]*(1+dt*Cprev/2+dt*d2coef[i]/2)-dt*NLfi[i])/integ_coef[i];	
+		ufr[i]=ufr[i]*(1+(d2coef[i]+Cprev)*dt)-NLfr[i]*dt;
+		ufi[i]=ufi[i]*(1+(d2coef[i]+Cprev)*dt)-NLfi[i]*dt;
 	}
 
 	/*INVERSE FFT*/
@@ -273,6 +260,7 @@ for (int loop = 0; loop < nloop; loop++){
 	}
 	fftw_execute(pb); // repeat as needed
     //#pragma omp parallel for //seulement pour les grands systèmes
+	#pragma omp parallel for //seulement pour les grands systèmes
 	for(i=0; i<N; i++) {
 	u[i]=out[i][0]/N;
 	}
@@ -292,17 +280,25 @@ for (int loop = 0; loop < nloop; loop++){
 	}
 	*/
 	
-	/*Measure observables
+	/*Measure observables*/
 	if (loop >= ((double)nloop/num_saves)*index_saves){
 		Times[index_saves] = ttime;	
-		q2Ave[index_saves] = calcq2ave(ufr, ufi, d2coef, N, dx);
-		ellDW[index_saves] = calcelllDW(ufr, ufi, d2coef, N, dx);
-		kink_dist[index_saves] = calckink_dist(x, u, N, dx);
+		//q2Ave[index_saves] = calcq2ave(ufr, ufi, d2coef, N, dx);
+		//intu2[index_saves] = calcIntu2(u, N, dx);
+		//ellDW[index_saves] = calcelllDW(ufr, ufi, d2coef, N, dx);
+		//kink_dist[index_saves] = calckink_dist(u, N, dx);
+		//measure_dist(u,N,dx,x0[index_saves],u0[index_saves]);
+		//num_kinks[index_saves] = calcnum_kiks(u, N);
+		/*IF num kinks = 0, stop simulation!
+		if (num_kinks[index_saves] == 0){
+			num_saves = index_saves+1;
+			loop = nloop;	// Stop simulation
+		}*/
 		//sigma2ave[index_saves] = calcaverage_sigma2(x, u, ux, N, dx);
-		uave[index_saves] = calcaverage(ufr, N, dx);
-
+		u0_twokinks[index_saves] = u[(int)(N/2)];	// Amplitude of the twokink profile (u at x=L/2)
+		//uave[index_saves] = calcaverage(ufr, ufi, N, dx);
 		index_saves = index_saves + 1;
-	}*/
+	}
 }
 printf("t = %lf\n", ttime);
 
@@ -317,13 +313,18 @@ calcstructure_fact(ufr, ufi, N, structure_fac);
 FILE* varfile;
 
 /*Save the measured observables as a function of time*/
-save_observable(varfile, save_dir, "fileCout.dat", t_C, C, nloop, 1);
-save_observable(varfile, save_dir, "fileq2Aveout.dat", Times, q2Ave, num_saves, 1);
-save_observable(varfile, save_dir, "fileellDW.dat", Times, ellDW, num_saves, 1);
-save_observable(varfile, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
-save_observable(varfile, save_dir, "filekinkdist.dat", Times, kink_dist, num_saves, 1);
+save_observable(varfile, save_dir, "fileCout.dat", t_C, C, num_saves, 1);
+//save_observable(varfile, save_dir, "fileq2Aveout.dat", Times, q2Ave, num_saves, 1);
+//save_observable(varfile, save_dir, "fileellDW.dat", Times, ellDW, num_saves, 1);
+//save_observable(varfile, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
+//save_observable(varfile, save_dir, "fileIntu2.dat", Times, intu2, num_saves, 1);
+//save_observable(varfile, save_dir, "filekinkdist.dat", Times, kink_dist, num_saves, 1);
+//save_arraylike_observable(varfile, save_dir, "filezeroX.dat", Times, x0, num_saves, (deg_interpolation+1), 1);
+//save_arraylike_observable(varfile, save_dir, "filezeroY.dat", Times, u0, num_saves, (deg_interpolation+1), 1);
+//save_observable(varfile, save_dir, "filenumkinks.dat", Times, num_kinks, num_saves, 1);
 //save_observable(varfile, "filesigma2ave.dat", Times, sigma2ave, num_saves, 1);
-save_observable(varfile, save_dir, "fileuave.dat", Times, uave, num_saves, 1);
+//save_observable(varfile, save_dir, "fileuave.dat", Times, uave, num_saves, 1);
+save_observable(varfile, save_dir, "fileu0.dat", Times, u0_twokinks, num_saves, 1);
 
 /*Clear memory*/
 fftw_destroy_plan(pf);

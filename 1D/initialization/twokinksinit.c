@@ -11,7 +11,7 @@
 #define pi  4*atan(1.0)
 
 double doublekink(double x, double x1, double x2, double C0){
-    return sqrt(C0)*(tanh(sqrt(C0/2)*(x-x1))-tanh(sqrt(C0/2)*(x-x2))-1);
+    return sqrt(C0)*(tanh(x-x1)-tanh(x-x2)-1);
 }
 
 int main(int argc, char  *argv [ ]){
@@ -30,16 +30,18 @@ char* simul_path;
 int n_args = 4;         /*Number of required arguments*/
                         /*L, u0, simulation name*/
 if (argc <= n_args){
-    printf("Not enought input arguments");
+    printf("Not enought input arguments (initialization)");
     return 0;
 }
+double dx = 0.1;
+
 N = (int)strtod(argv[1], &ptr);
 u0 = strtod(argv[2], &ptr);
 d = strtod(argv[3], &ptr);
 simul_path = argv[4];
+if (argc > 5)
+    dx = strtod(argv[5], &ptr);
 
-double dx = 0.1;
-double dt = 0.01;
 /*Read parameters from parameters.txt.
 double dx, dt, Ampl, Thalf, Cave;
 FILE *fileparams;
@@ -49,6 +51,7 @@ fclose(fileparams);
 */
 double L = (double)N*dx;
 printf("dx = %lf\n", dx);
+printf("L = %lf\n", L);
 
 
 //char save_dir[MAX_BUFFER_SIZE] = "../../2D/.saves/";

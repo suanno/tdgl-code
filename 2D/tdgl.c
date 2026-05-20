@@ -77,15 +77,6 @@ if (argc <= min_args){
 tspan = (double)strtod(argv[1], &ptr);
 simul_path = argv[2];
 
-/*
-int read_from_top = 0;             // Read fileCin.dat from t=0 instead of t=t_min (initial time of the simulation)
-int loop_read = 0;                 // If the time reaches a value t so large that is not contained in fileCin.dat, it continues to read the file from the top (t=0)
-if (argc > min_args + 1)
-    read_from_top = (int)strtod(argv[3], &ptr);
-if (argc > min_args + 2)
-    loop_read = (int)strtod(argv[3], &ptr);
-*/
-
 //char save_dir[MAX_BUFFER_SIZE] = "../../2D/.saves/";
 char save_dir[MAX_BUFFER_SIZE] = ""; strcat(save_dir, simul_path); /* add the extension */
 
@@ -137,26 +128,7 @@ for(i = 0; i < N; i++)
 double** integ_coef = malloc(N*sizeof(double*));
 for(i = 0; i < N; i++)
 		integ_coef[i] = malloc(N * sizeof(double));
-// q=(qx,qy) times F{u(x,y)}(qx,qy) (scalar); need to compute the gradient (h_x, h_y)
-double** qxhfr = malloc(N*sizeof(double*));
-for(i = 0; i < N; i++)
-		qxhfr[i] = malloc(N * sizeof(double));
-double** qxhfi = malloc(N*sizeof(double*));
-for(i = 0; i < N; i++)
-		qxhfi[i] = malloc(N * sizeof(double));
-double** qyhfr = malloc(N*sizeof(double*));
-for(i = 0; i < N; i++)
-		qyhfr[i] = malloc(N * sizeof(double));
-double** qyhfi = malloc(N*sizeof(double*));
-for(i = 0; i < N; i++)
-		qyhfi[i] = malloc(N * sizeof(double));
-// h_x and h_y
-double** ghx = malloc(N*sizeof(double*));
-for(i = 0; i < N; i++)
-		ghx[i] = malloc(N * sizeof(double));
-double** ghy = malloc(N*sizeof(double*));
-for(i = 0; i < N; i++)
-		ghy[i] = malloc(N * sizeof(double));
+
 // qfr contains the discrete values available for qx (or qy)
 double* ffr = malloc(N*sizeof(double));
 double* qfr = malloc(N*sizeof(double));
@@ -192,23 +164,8 @@ num_saves = nloop;
 
 double* Times = malloc(num_saves*sizeof(double)); /*Times of saves*/
 double* Cout = malloc(num_saves*sizeof(double)); 
-//double* Ave = malloc(num_saves*sizeof(double));
 double* q2Ave = malloc(num_saves*sizeof(double)); 
 double* totlenght = malloc(num_saves*sizeof(double));
-double* ellDW = malloc(num_saves*sizeof(double));
-double* structure_fac = malloc(N*sizeof(double));
-double* integ_grad2 = malloc(num_saves*sizeof(double)); 
-double* radius_island = malloc(num_saves*sizeof(double));
-//Points for the interpolation to estimate the radius of a circular island
-double** x0 = malloc(num_saves*sizeof(double));
-double** u0 = malloc(num_saves*sizeof(double));
-double deg_interpolation = 3;
-for(i = 0; i < num_saves; i++)
-		x0[i] = malloc((deg_interpolation+1) * sizeof(double));
-for(i = 0; i < num_saves; i++)
-		u0[i] = malloc((deg_interpolation+1) * sizeof(double));
-//double* R2 = malloc(num_saves*sizeof(double)); /*Average of R2 weighted on grad2*/
-//double weight_sum = 0;  /*Sum of the weights*/
 
 
 /* FFTW STUFF */
@@ -233,6 +190,7 @@ pb = fftw_plan_dft_2d(N,N,in,out,FFTW_BACKWARD,FFTW_ESTIMATE);
 
 printf("\n Starting evolution...\n");
 
+FILE* observables_file;
 /* EVOLUTION CODE */
 double time = tmin;
 int loop = 0;
@@ -312,21 +270,12 @@ for(loop=0;loop<nloop;loop++) {
     }
 
     //printf("%lf \n", time);
-    /* Measure Observables (instantaneous value) */
+    /* Measure Observables (instantaneous value)*/
     if (loop >= ((double)nloop/num_saves)*index_saves){
         Times[index_saves] = time;
-        Cout[index_saves] = C[loop];
         q2Ave[index_saves] = calcq2ave(hfr, hfi, q2, N);
         totlenght[index_saves] = calcCauchyCrofton(h, N, dx);
-        //radius_island[index_saves] = calcRadiusCircularIsland(h, N, dx);
-		//measureRadiusCircularIsland(h,N,dx,x0[index_saves],u0[index_saves]);
-        //ellDW[index_saves] = calcellDW(hfr, hfi, q2, N, dx);
-        
-
-        //printf("%d / %d\n",loop, nloop);
         index_saves = index_saves + 1;
-        //printf("C(%lf) = %lf; ", time, Cout[index_saves-1]);
-        //printf("loop = %d/%d; %d\n",loop,nloop,index_saves);
     }
     
 }
@@ -336,18 +285,9 @@ printf("\n Saving... tmax = %lf\n", tmax);
 
 writeState(state_dir,h,N,dx,tmax);
 
-/*Calculate the structure factor*/
-
-FILE* observables_file;
 save_observable(observables_file, save_dir, "fileQ2.dat", Times, q2Ave, num_saves, 1);
 save_observable(observables_file, save_dir, "fileTotlenght.dat", Times, totlenght, num_saves, 1);
-//save_observable(observables_file, save_dir, "fileRadius.dat", Times, radius_island, num_saves, 1);
-//save_arraylike_observable(observables_file, save_dir, "filezeroX.dat", Times, x0, num_saves, (deg_interpolation+1), 1);
-//save_arraylike_observable(observables_file, save_dir, "filezeroY.dat", Times, u0, num_saves, (deg_interpolation+1), 1);
-//save_observable(observables_file, save_dir, "fileDW.dat", Times, ellDW, num_saves, 1);
-save_observable(observables_file, save_dir, "fileCout.dat", Times, Cout, num_saves, 1);
 //calcstructure_fact(hfr, hfi, N, structure_fac);
-//save_observable(observables_file, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
 
 fftw_destroy_plan(pf);
 fftw_destroy_plan(pb);
@@ -371,15 +311,22 @@ free(ffr);
 free(qfr);
 free(q2);
 free(integ_coef);
+/*
 free(qxhfr);
 free(qxhfi);
 free(qyhfr);
 free(qyhfi);
 free(ghx);
 free(ghy);
-//free(Times);
-//free(q2Ave);
-//free(Ave);
+
+free(q2Ave);
+free(radius_island);
+free(totlenght);
+free(valPhi);
+free(valPhi1);
+free(valPhi2);
+*/
+free(Times);
 
 return 0;
 }

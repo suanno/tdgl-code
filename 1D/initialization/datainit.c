@@ -41,8 +41,10 @@ N = (int)strtod(argv[1], &ptr);
 bias = strtod(argv[2], &ptr);
 u0 = strtod(argv[3], &ptr);
 simul_path = argv[4];
-
 double dx = 0.1;
+if (argc == n_args+2)
+    dx = strtod(argv[5], &ptr);
+
 double dt = 0.01;
 /*Read parameters from parameters.txt.
 double dx, dt, Ampl, Thalf, Cave;

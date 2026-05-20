@@ -7,7 +7,12 @@
 
 double calcq2ave(double** hfr, double** hfi, double** q2, int N);
 double calcCauchyCrofton(double** h, int N, double dx);
+int calcTotalArea(double** h, int N, double dx);
+double calcPhi(double** h, int N, double dx);
+double calcPhi1(double** h, int N, double dx);
+double calcPhi2(double** h, int N, double dx);
 double calcRadiusCircularIsland(double** h, int N, double dx);
+int calcRadiusCircularIsland_pi4(double** h, int N, double dx, double*list_R, double*list_tantheta);
 int measureRadiusCircularIsland(double**h, int N, double dx, double*x0, double*u0);
 double calcDW(double** ghx, double** ghy, double dx, int N);
 double calcellDW(double** hfr, double** hfi, double** q2, int N, double dx);
