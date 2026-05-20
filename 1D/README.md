@@ -5,7 +5,7 @@ See **/initialization/README.md**
 Example (random initial conditions):
 - Compile
 
-            gcc initialization/datainit.c -fopenmp -lfftw3 -lm -lfftw3_omp -O2 -o .bin/datainit
+            gcc initialization/datainit.c -o .bin/datainit
 - Generate the simulation folder and the initial state
 
               ./datainit N u0 eps foldername

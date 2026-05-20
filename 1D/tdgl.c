@@ -140,30 +140,7 @@ num_saves = nloop;
 int index_saves = 0;
 double* Times = malloc(num_saves*sizeof(double)); /*Times of saves*/
 double* q2Ave = malloc(num_saves*sizeof(double));
-//double* intu = malloc(num_saves*sizeof(double));
-//double* intu2 = malloc(num_saves*sizeof(double));
-double* m2 = malloc(num_saves*sizeof(double));
-double* m4 = malloc(num_saves*sizeof(double));
-//double* ellDW = malloc(num_saves*sizeof(double));
-//double* min_len = malloc(num_saves*sizeof(double));
-//double* structure_fac = malloc(N*sizeof(double));
-//double* uave = malloc(num_saves*sizeof(double));
-//double* u0_twokinks = malloc(num_saves*sizeof(double));
-//double* u0D = malloc(num_saves*sizeof(double));
-//double* kink_dist = malloc(num_saves*sizeof(double));
-/*
-double** x0 = malloc(num_saves*sizeof(double));
-double** u0 = malloc(num_saves*sizeof(double));
-double deg_interpolation = 3;
-for(i = 0; i < num_saves; i++)
-		x0[i] = malloc((deg_interpolation+1) * sizeof(double));
-for(i = 0; i < num_saves; i++)
-		u0[i] = malloc((deg_interpolation+1) * sizeof(double));
-*/
 double* num_kinks = malloc(num_saves*sizeof(double));
-//double* sigma2ave = malloc(num_saves*sizeof(double));
-double weight_sum = 0;
-int found_kink = 0;
 
 /*State variables*/
 double* x = malloc(N*sizeof(double));
@@ -280,37 +257,13 @@ for (int loop = 0; loop < nloop; loop++){
 	for(i=0; i<N; i++) {
 	u[i]=out[i][0]/N;
 	}
-
-	/*Compute du/dx
-	for(i=0; i<N; i++) {
-	uxfr[i]=qfr[i]*ufi[i];
-	uxfi[i]=-qfr[i]*ufr[i];
-	}
-	for(i=0; i<N; i++) {
-	in[i][0]=uxfr[i];
-	in[i][1]=uxfi[i];
-	}
-	fftw_execute(pb); // repeat as needed
-	for(i=0; i<N; i++) {
-	ux[i]=out[i][0]/N;
-	}
-	*/
 	
 	/*Measure observables*/
 	if (loop >= ((double)nloop/num_saves)*index_saves){
 		//printf("%lf\n",ttime);
 		Times[index_saves] = ttime;	
 		q2Ave[index_saves] = calcq2ave(ufr, ufi, d2coef, N, dx);
-		//intu2[index_saves] = calcIntu2(u, N, dx);
-		//m2[index_saves] = calcm2(u, N);
-		//m4[index_saves] = calcm4(u, N);
-		//ellDW[index_saves] = calcelllDW(ufr, ufi, d2coef, N, dx);
-		//kink_dist[index_saves] = calckink_dist(u, N, dx);
-		//intu2[index_saves] = calcIntu2(u, N);
-		//u0D[index_saves] = u[0];
-		//measure_dist(u,N,dx,x0[index_saves],u0[index_saves]);
 		num_kinks[index_saves] = calcnum_kiks(u, N);
-		//min_len[index_saves] = calcmin_len(u, N, dx);
 		
 		/*IF num kinks = 0, stop simulation!*/
 		if (num_kinks[index_saves] == 0){
@@ -341,21 +294,7 @@ FILE* varfile;
 /*Save the measured observables as a function of time*/
 save_observable(varfile, save_dir, "fileCout.dat", t_C, C, num_saves, 1);
 save_observable(varfile, save_dir, "fileq2Aveout.dat", Times, q2Ave, num_saves, 1);
-//save_observable(varfile, save_dir, "fileellDW.dat", Times, ellDW, num_saves, 1);
-//save_observable(varfile, save_dir, "fileSq.dat", qfr, structure_fac, N, 0);
-//save_observable(varfile, save_dir, "fileIntu2.dat", Times, intu2, num_saves, 1);
-//save_observable(varfile, save_dir, "filem2.dat", Times, m2, num_saves, 1);
-//save_observable(varfile, save_dir, "filem4.dat", Times, m4, num_saves, 1);
-//save_observable(varfile, save_dir, "fileIntu.dat", Times, intu, num_saves, 1);
-//save_observable_single_row(varfile, save_dir, "file_kink_pos.dat", Times[index_saves-1], pos_kinks, num_kinks[index_saves-1], 1);
-//save_observable(varfile, save_dir, "filekinkdist.dat", Times, kink_dist, num_saves, 1);
-//save_arraylike_observable(varfile, save_dir, "filezeroX.dat", Times, x0, num_saves, (deg_interpolation+1), 1);
-//save_arraylike_observable(varfile, save_dir, "filezeroY.dat", Times, u0, num_saves, (deg_interpolation+1), 1);
 save_observable(varfile, save_dir, "filenumkinks.dat", Times, num_kinks, num_saves, 1);
-//save_observable(varfile, save_dir, "fileminlen.dat", Times, min_len, num_saves, 1);
-//save_observable(varfile, "filesigma2ave.dat", Times, sigma2ave, num_saves, 1);
-//save_observable(varfile, save_dir, "fileuave.dat", Times, uave, num_saves, 1);
-//save_observable(varfile, save_dir, "fileu0.dat", Times, u0D, num_saves, 1);
 
 /*Clear memory*/
 fftw_destroy_plan(pf);
@@ -382,8 +321,6 @@ free(integ_coef);
 
 free(Times);
 free(q2Ave);
-free(m2);
-free(m4);
 free(num_kinks);
 //free(kink_dist);
 //free(sigma2ave);
