@@ -8,7 +8,7 @@ Example (random initial conditions):
             gcc initialization/datainit.c -o .bin/datainit
 - Generate the simulation folder and the initial state
 
-              ./datainit N u0 eps foldername
+              .bin/datainit N u0 eps foldername
 
 
 
@@ -20,6 +20,8 @@ Example (random initial conditions):
 - Run the simulation
 
         .bin/tdgl tspan foldername Cbar A T dt
+
+**Notice**: For a constant C, you specify $T=-1$.
 
 If you run again the last command, the simulation will continue (**not** restart from t=0).
 
