@@ -8,7 +8,7 @@ Example (random initial conditions):
             gcc initialization/datainit.c -o .bin/datainit
 - Generate the simulation folder and the initial state
 
-              ./datainit N u0 eps foldername
+              .bin/datainit N u0 eps foldername
 
 # Generate the C(t) input file
 To specify the value of $C(t)$ in
@@ -19,7 +19,7 @@ It is important to generate this file in the simulation folder (the one specifie
 # Run simulation
 - Compile the simulation code
         
-        .gcc tdgl.c observables.c read_write.c -fopenmp -lfftw3 -lm -lfftw3_omp -O2 -o .bin/tdgl
+        gcc tdgl.c observables.c read_write.c -fopenmp -lfftw3 -lm -lfftw3_omp -O2 -o .bin/tdgl
 
 - Run the simulation
 
