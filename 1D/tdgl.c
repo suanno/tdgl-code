@@ -265,11 +265,11 @@ for (int loop = 0; loop < nloop; loop++){
 		q2Ave[index_saves] = calcq2ave(ufr, ufi, d2coef, N, dx);
 		num_kinks[index_saves] = calcnum_kiks(u, N);
 		
-		/*IF num kinks = 0, stop simulation!*/
+		/*IF num kinks = 0, stop simulation!
 		if (num_kinks[index_saves] == 0){
 			num_saves = index_saves+1;
 			loop = nloop;	// Stop simulation
-		}
+		}*/
 		//sigma2ave[index_saves] = calcaverage_sigma2(x, u, ux, N, dx);
 		//u0_twokinks[index_saves] = u[(int)(N/2)];	// Amplitude of the twokink profile (u at x=L/2)
 		//uave[index_saves] = calcaverage(ufr, ufi, N, dx);
