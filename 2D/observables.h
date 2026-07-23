@@ -17,6 +17,8 @@ int measureRadiusCircularIsland(double**h, int N, double dx, double*x0, double*u
 double calcDW(double** ghx, double** ghy, double dx, int N);
 double calcellDW(double** hfr, double** hfi, double** q2, int N, double dx);
 int calcstructure_fact(double** ufr, double** ufi, int N, double* structure_fac);
+double calcm2(double** h, int N);
+double calcm4(double** h, int N);
 //double calcelllDW(double* ufr, double* ufi, double* d2coef, int N, double dx);
 //int calcstructure_fact(double* ufr, double* ufi, int N, double* structure_fac);
 //double calcaverage_sigma2(double* x, double* u, double* ux, int N, double dx);

@@ -32,7 +32,7 @@ int calcTotalArea(double** h, int N, double dx){
             }
         }
     }
-    return num;
+    return num*dx*dx;
 }
 
 
@@ -134,6 +134,30 @@ double calcCauchyCrofton(double** u, int N, double dx){
     average_lenght = average_lenght + 0.5*num_crossings*(sqrt(2)*dx)*(pi);
 
     return average_lenght/4;
+}
+
+// Moments
+double calcm2(double** h, int N){
+    // Calculate the second moment of phi (not of g!):
+    double sum = 0;
+    for(int i=0;i<N;i++) {
+        for(int j=0;j<N;j++) {
+            sum = sum + h[i][j]*h[i][j];
+        }
+    }
+    return 0.5*sum/(N*N);
+}
+
+double calcm4(double** h, int N){
+
+	// Calculate the second moment of phi (not of g!):
+	double sum = 0;
+    for(int i=0;i<N;i++) {
+        for(int j=0;j<N;j++) {
+		    sum = sum + h[i][j]*h[i][j]*h[i][j]*h[i][j];
+        }
+	}
+	return sum/(N*N);
 }
 
 double calcRadiusCircularIsland(double** h, int N, double dx){

@@ -167,6 +167,8 @@ double* Cout = malloc(num_saves*sizeof(double));
 double* q2Ave = malloc(num_saves*sizeof(double)); 
 double* totlenght = malloc(num_saves*sizeof(double));
 double* totArea = malloc(num_saves*sizeof(double));
+double* m2 = malloc(num_saves*sizeof(double));
+double* m4 = malloc(num_saves*sizeof(double));
 
 
 /* FFTW STUFF */
@@ -277,6 +279,8 @@ for(loop=0;loop<nloop;loop++) {
         q2Ave[index_saves] = calcq2ave(hfr, hfi, q2, N);
         totlenght[index_saves] = calcCauchyCrofton(h, N, dx);
         totArea[index_saves] = calcTotalArea(h, N, dx);
+        m2[index_saves] = calcm2(h, N);
+        m4[index_saves] = calcm4(h, N);
         index_saves = index_saves + 1;
     }
     
@@ -290,6 +294,8 @@ writeState(state_dir,h,N,dx,tmax);
 save_observable(observables_file, save_dir, "fileQ2.dat", Times, q2Ave, num_saves, 1);
 save_observable(observables_file, save_dir, "fileTotlenght.dat", Times, totlenght, num_saves, 1);
 save_observable(observables_file, save_dir, "fileTotarea.dat", Times, totArea, num_saves, 1);
+save_observable(observables_file, save_dir, "filem2.dat", Times, m2, num_saves, 1);
+save_observable(observables_file, save_dir, "filem4.dat", Times, m4, num_saves, 1);
 //calcstructure_fact(hfr, hfi, N, structure_fac);
 
 fftw_destroy_plan(pf);
